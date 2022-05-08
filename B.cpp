@@ -5,6 +5,7 @@
 using namespace std;
 #include<vector>
 #include<queue>
+#include<stack>
 
 //Store list nodes
 struct Node
@@ -12,9 +13,11 @@ struct Node
     int value;
     vector<Node*> adjacencyList; //tried storing the adjacency list in a linked list first which made things unnecessarily complicated
     Node* parent; //(BFS)parent will be used for BFS when we reverse path and follow parent nodes from the end destination vertext to the start vertex
+
+    int discoverTime;
+    int finishTime;
+    int color; // 0=white, 1=grey, 2=black
 };
-
-
 
 // graph edge structure
 struct Edge
@@ -37,6 +40,8 @@ public:
 
     vector<Node*> visited; //(BFS) this vector will store the vertices that we have already visited during
 
+    vector<vector<int>> components; //2 dimensional vector array.
+
     // Constructor
     Graph(vector<Edge> edges, int numEdges, int numNodes)
     {
@@ -51,20 +56,125 @@ public:
             head[i]->value = i+1;
         }
 
-        //add edges between two vertices
+        //add a directed edge between two vertices
         for (int i=0; i < numEdges; i++)
         {   //Give values/edges to the new node
             int source = edges[i].source;
             int destination = edges[i].destination;
 
-            //So undirected graph mean it can go both ways, so we are going to add both directions when adding edge to make
-            //    and UNDIRECTED graph
-            insertEdge(head[source-1], head[destination-1]); //using helper function (-1 because zero indexed)
-            insertEdge(head[destination-1], head[source-1]); //if we wanted to make a directed graph we would just remove this line which adds the opposite direction to an edge
+            //so a directed edge goes from source to destination so we are going to plug in those values to the insert function
+            insertEdge(head[source-1], head[destination-1]); //using graph helper function (-1 because zero indexed)
+            //insertEdge(head[destination-1], head[source-1]); //if we wanted to make an undirected graph we would just add this line which adds the opposite direction for each edge
         }
     }
 
-    //determine if we visited a node (BFS)
+    void transposeGraph(vector<Edge> & edges, int V) //basically the same as the constructor except we are going to insert the opposite direction edges
+    {
+        // allocate memory (array of pointers, to our nodes/vertices
+        head = new Node*[V]();
+
+        //initialize head pointer for all the vertices (zero index)
+        for(int i=0; i < V; i++)
+        {
+            head[i] = new Node();
+            head[i]->value = i+1;
+        }
+
+        //add a directed edge between two vertices
+        for (int i=0; i < edges.size(); i++)
+        {   //Give values/edges to the new node
+            int source = edges[i].destination; //storing opposite value
+            int destination = edges[i].source; //storing opposite value
+            //insert edges but their source/dest values are flipped which is how we will get our transposed graph
+            insertEdge(head[source-1], head[destination-1]);
+        }
+    }
+
+    void DFS(Graph &G, int V, stack<Node*> & finishedVertices)
+    {
+        //stack<Node*> finishedVertices;
+        bool saveOrder = true;
+
+        int time;
+        for (int i = 0; i < V; i++) //initialize vertices to white(undiscovered) and w/ no parent
+        {
+            head[i]->color = 0;
+            head[i]->parent = nullptr;
+        }
+        time = 0;
+
+        for(int i=0; i < V; i++)
+        {
+            if(head[i]->color == 0)
+            {
+                DFSVisit(G, head[i], time, finishedVertices, saveOrder);
+            }
+        }
+
+        //cout << finishedVertices.size(); shows in order the vertices that the DFS algorithm visited as it ran
+        //printFinishedVerticesList();
+    }
+
+    void DFSVisit(Graph &G, Node* vertex, int &time, stack<Node*> & finishedVertices, bool addToStack)
+    {
+        if(!addToStack && !inVisited(vertex))
+        {
+            cout << vertex->value << " ";
+        }
+
+        time++;
+        vertex->discoverTime = time;
+        vertex->color = 1; // vertex is discovered (grey)
+
+        for(int i=0; i<vertex->adjacencyList.size(); i++)
+        {
+            Node* neighbor = vertex->adjacencyList[i];
+            if(neighbor->color == 0)
+            {
+                neighbor->parent = vertex;
+                DFSVisit(G, neighbor, time, finishedVertices, addToStack);
+            }
+        }
+        vertex->color = 2; //vertex is finished (black)
+        visited.push_back(vertex);
+        time++;
+        vertex->finishTime = time;
+
+        if(addToStack)
+        {
+            finishedVertices.push(vertex);
+        }
+    }
+
+    void DFS_SpecifcOrder(Graph &G, int V, stack<Node*> & finishedVertices)
+    {
+        bool saveOrder = false;
+
+        int time;
+        for (int i = 0; i < V; i++) //initialize vertices to white(undiscovered) and w/ no parent
+        {
+            head[i]->color = 0;
+            head[i]->parent = nullptr;
+        }
+        time = 0;
+
+        cout << "G contains following strongly connected components:" << endl;
+        int countComponents = 0;
+        while(!finishedVertices.empty())
+        {
+            int i = finishedVertices.top()->value - 1; //-1 cuz zero indexed
+            if(head[i]->color == 0) //now we are going to run the recursive DFS algorithm
+            {
+                countComponents++;
+                cout << "Component " << countComponents << ": ";
+                DFSVisit(G, head[i], time, finishedVertices, saveOrder);
+                cout << endl;
+            }
+            finishedVertices.pop(); //remove the vertex we just visited from the stack
+        }
+
+    }
+
     bool inVisited(Node* ptr) //passed in the pointer to a vertex
     {
         for(int i=0; i < visited.size(); i++)
@@ -75,75 +185,6 @@ public:
             }
         }
         return false;
-    }
-
-    void BFS(Node* start, Node* destination) //passed two Node pointers, start and end value for our search
-    {
-        visited.clear(); //empties vector list of visited vertices
-        visited.push_back(start); //Include the start vertex into the list of visited
-
-        queue<Node*> Q; //tells us what vertex to visit next
-        Q.push(start); //add start vertex to queue
-        bool destFound = false;
-
-        start->parent = nullptr; //the start node in our search does not have a parent
-
-        while(!Q.empty()) //keeps running while there are places that need to be visited
-        {
-            Node* current = Q.front(); //set current node to the next node from the queue
-            Q.pop();//remove from the queue, node currently being visited
-
-            if(destination->value == current->value) //if we found destination
-            {
-                destFound = true;
-                break;
-            }
-            for(int i=0; i<current->adjacencyList.size(); i++) //loops through the current nodes neighbors
-            {
-                Node* neighbor = current->adjacencyList[i];
-                if(!inVisited(neighbor)) //if not previosuly visited this node then mark as visited and add the queue of next visit
-                { //looking current node's neighbor
-                    visited.push_back(neighbor);
-                    neighbor->parent = current; //the neighbor nodes' parent node will be the node that we are currently on
-                    Q.push(neighbor); //add neighbor into the queue of vertices that we have yet to visit
-                }
-            }
-        }
-        if(destFound)
-        {
-            //print distance and store path
-            vector<int> path;
-            Node* currentNode = destination; //starting from the end and working our way to the start inputting the path into a vector
-            path.push_back(destination->value);
-            while(currentNode->parent != nullptr) //nullptr means we have reached the start node
-            { //so now reversing through the path and visiting each parent node to construct the path into a vector
-                path.insert(path.begin(), currentNode->parent->value); //path.begin = insert at the front of the vector
-                currentNode = currentNode->parent;
-            }
-            cout << "The distance from " << start->value << " to " << destination->value << " is " << path.size()-1 << "." << endl; //-1 cuz its counting nodes instead of hops
-            printShortestPath(path); //print path
-        }
-        else
-        {
-            cout << "The distance from " << start->value << " to " << destination->value << " is " << "infinity." << endl;
-            cout << "No path from " << start->value << " to " << destination->value << " exists" << endl;
-        }
-    }
-
-    void printShortestPath(vector<int> p)
-    {
-        cout << "A shortest path from " << p.front() << " to " << p.back() << " is: ";
-        for(int i=0; i<p.size(); i++)
-        {
-            if(i==p.size()-1) // to fix the annoying problem of having and extra -> at the end
-            {
-                cout << p[i] << endl;
-            }
-            else
-            {
-                cout << p[i] << " -> ";
-            }
-        }
     }
 
     void printNeighborVertices(Node* ptr) // takes pointer to vertex as param and then prints the connected neighbors of that vertex
@@ -173,7 +214,7 @@ public:
 
 int main() {
     //Below line is to take input from input.txt instead of having to type each command
-    freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/inputA.txt", "r", stdin);
+    freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/inputB.txt", "r", stdin);
 
     int numCases;
     cin >> numCases;
@@ -205,20 +246,23 @@ int main() {
 
         cout << endl;
 
-        //BFS
-        cin >> source >> destination;
-        while (source != 0 && destination != 0)
-        {
-            graph.BFS(graph.head[source-1], graph.head[destination-1]);
-            cout << endl;
-            cin >> source >> destination;
-        }
+        // Stack that will hold the order of the finished vertices (in decreasing order of finised times i.e last finished to first finished)
+        stack<Node*> finishedVertices;
+        //RUN DFS on Graph
+        graph.DFS(graph,numVertices, finishedVertices);
+
+        //Transpose the graph
+        Graph transposedG(edges, numEdges, numVertices);//creating a new graph
+        transposedG.transposeGraph(edges, numVertices);//transposing our new graph
+
+        //Run DFS on the graph in the decreasing order we found from DFS on original graph
+        transposedG.DFS_SpecifcOrder(transposedG, numVertices, finishedVertices);
+
+        //transposedG.printAdjListRepresentation(); //test to see if transposed correctly
+
+        cout << endl << endl;
         graphCounter++;
         numCases--;
-// TESTING BFS
-//        graph.BFS(graph.head[0], graph.head[4]);// BFS from 1 to 5 (zero index)
-//        graph.BFS(graph.head[2], graph.head[5]);// BFS from 3 to 6 (zero index)
-//        graph.BFS(graph.head[3], graph.head[3]);// BFS from 4 to 4 (zero index)
     }
     return 0;
 }
