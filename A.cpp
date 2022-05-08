@@ -1,4 +1,4 @@
-//Mustafa Shami
+//Mustafa Shami     Due: May 3rd, 2022     CSCI3412-Algorithms
 //Remember to make sure the cmake list is building the right file
 //used "Node" and "Vertex" interchangeably in the comments
 #include <iostream>
@@ -57,8 +57,10 @@ public:
             int source = edges[i].source;
             int destination = edges[i].destination;
 
+            //So undirected graph mean it can go both ways, so we are going to add both directions when adding edge to make
+            //    and UNDIRECTED graph
             insertEdge(head[source-1], head[destination-1]); //using helper function (-1 because zero indexed)
-            insertEdge(head[destination-1], head[source-1]);
+            insertEdge(head[destination-1], head[source-1]); //if we wanted to make a directed graph we would just remove this line which adds the opposite direction to an edge
         }
     }
 
@@ -171,7 +173,7 @@ public:
 
 int main() {
     //Below line is to take input from input.txt instead of having to type each command
-    freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/input.txt", "r", stdin);
+    freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/inputA.txt", "r", stdin);
 
     int numCases;
     cin >> numCases;
