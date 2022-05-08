@@ -72,8 +72,8 @@ build edit_cache: phony CMakeFiles/edit_cache.util
 
 build cmake_object_order_depends_target_Shami_Prog_Assignment_5: phony || CMakeFiles/Shami_Prog_Assignment_5.dir
 
-build CMakeFiles/Shami_Prog_Assignment_5.dir/B.cpp.o: CXX_COMPILER__Shami_Prog_Assignment_5_Debug /Users/mustafa/Desktop/SPRING$ 2022/Algorithms$ CSCI3412/Programming$ Assignments/Shami_Prog.Assignment$ 5/B.cpp || cmake_object_order_depends_target_Shami_Prog_Assignment_5
-  DEP_FILE = CMakeFiles/Shami_Prog_Assignment_5.dir/B.cpp.o.d
+build CMakeFiles/Shami_Prog_Assignment_5.dir/A.cpp.o: CXX_COMPILER__Shami_Prog_Assignment_5_Debug /Users/mustafa/Desktop/SPRING$ 2022/Algorithms$ CSCI3412/Programming$ Assignments/Shami_Prog.Assignment$ 5/A.cpp || cmake_object_order_depends_target_Shami_Prog_Assignment_5
+  DEP_FILE = CMakeFiles/Shami_Prog_Assignment_5.dir/A.cpp.o.d
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -std=gnu++14
   OBJECT_DIR = CMakeFiles/Shami_Prog_Assignment_5.dir
   OBJECT_FILE_DIR = CMakeFiles/Shami_Prog_Assignment_5.dir
@@ -86,7 +86,7 @@ build CMakeFiles/Shami_Prog_Assignment_5.dir/B.cpp.o: CXX_COMPILER__Shami_Prog_A
 #############################################
 # Link the executable Shami_Prog_Assignment_5
 
-build Shami_Prog_Assignment_5: CXX_EXECUTABLE_LINKER__Shami_Prog_Assignment_5_Debug CMakeFiles/Shami_Prog_Assignment_5.dir/B.cpp.o
+build Shami_Prog_Assignment_5: CXX_EXECUTABLE_LINKER__Shami_Prog_Assignment_5_Debug CMakeFiles/Shami_Prog_Assignment_5.dir/A.cpp.o
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk
   OBJECT_DIR = CMakeFiles/Shami_Prog_Assignment_5.dir
   POST_BUILD = :

@@ -24,7 +24,8 @@ struct Edge
 
 class Graph
 {   //insert Edge at the end of adjacency list (helper function)
-    Node* insertEdge(Node* source, Node* destination)
+//    Node* insertEdge(Node* source, Node* destination)
+    void insertEdge(Node* source, Node* destination)
     {
         source->adjacencyList.push_back(destination);
     }
@@ -173,14 +174,14 @@ public:
 
 int main() {
     //Below line is to take input from input.txt instead of having to type each command
-    freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/inputA.txt", "r", stdin);
+    //freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/inputA.txt", "r", stdin);
 
     int numCases;
     cin >> numCases;
     int graphCounter = 1;
 
     while (numCases != 0) {
-        cout << "Graph #" << graphCounter << ":" << endl;
+//        cout << "Graph #" << graphCounter << ":" << endl;
 
         int numVertices;
         cin >> numVertices;
@@ -200,6 +201,7 @@ int main() {
         int numEdges = edges.size();
         Graph graph(edges, numEdges, numVertices); //give values to create the graph object
 
+        cout << "Graph #" << graphCounter << ":" << endl;
         //print adjacency list
         graph.printAdjListRepresentation();
 
