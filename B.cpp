@@ -40,8 +40,6 @@ public:
 
     vector<Node*> visited; //(BFS) this vector will store the vertices that we have already visited during
 
-    vector<vector<int>> components; //2 dimensional vector array.
-
     // Constructor
     Graph(vector<Edge> edges, int numEdges, int numNodes)
     {
