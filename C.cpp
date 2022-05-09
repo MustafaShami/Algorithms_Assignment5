@@ -358,7 +358,7 @@ int main() {
         cin >> destination;
         cin >> weight;
         vector<Edge> edges; //vector that will hold Edge objects which we create from user input on the edges that are in the graph
-        while (countEdge >= 0)
+        while (countEdge > 0) //while (countEdge >= 0) CHANGE TO THIS FOR IT TO WORK ON LOCAL MACHINE
         {
             Edge e = {source, destination, weight}; //create edge object
             edges.push_back(e); //store edge object
@@ -367,6 +367,7 @@ int main() {
             countEdge--;
         }
 
+        numEdges = edges.size();
         Graph graph(edges, numEdges, numVertices); //give values to create the graph object
 
         cout << "Graph #" << graphCounter << ":" << endl;
