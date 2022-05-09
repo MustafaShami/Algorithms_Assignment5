@@ -358,7 +358,7 @@ int main() {
         cin >> destination;
         cin >> weight;
         vector<Edge> edges; //vector that will hold Edge objects which we create from user input on the edges that are in the graph
-        while (countEdge > 0) //while (countEdge >= 0) CHANGE TO THIS FOR IT TO WORK ON LOCAL MACHINE
+        while (countEdge > 0)
         {
             Edge e = {source, destination, weight}; //create edge object
             edges.push_back(e); //store edge object
