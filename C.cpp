@@ -1,35 +1,41 @@
 //Mustafa Shami     Due: May 3rd, 2022     CSCI3412-Algorithms
 //Remember to make sure the cmake list is building the right file
 //used "Node" and "Vertex" interchangeably in the comments
+
+//STRUGGLED ON THIS ONE: WAS SO CLOSE :(
+
 #include <iostream>
 using namespace std;
 #include<vector>
-#include<queue>
-#include<stack>
+
+#define INFINITY 10000
+#define MAX_VERTICES 1000
+
 
 //Store list nodes
 struct Node
 {
-    int value;
+    int vertexId;
     vector<Node*> adjacencyList; //tried storing the adjacency list in a linked list first which made things unnecessarily complicated
-    Node* parent; //(BFS)parent will be used for BFS when we reverse path and follow parent nodes from the end destination vertext to the start vertex
+    vector<double> weights;
+    int parent;
+    double key;
+    //Node* parent; //(BFS)parent will be used for BFS when we reverse path and follow parent nodes from the end destination vertext to the start vertex
 
-    int discoverTime;
-    int finishTime;
-    int color; // 0=white, 1=grey, 2=black
 };
+
 
 // graph edge structure
 struct Edge
 {
     int source, destination;
+    double weight;
 };
 
-class Graph
-{   //insert Edge at the end of adjacency list (helper function)
-    void insertEdge(Node* source, Node* destination)
-    {
+class Graph {   //insert Edge at the end of adjacency list (helper function)
+    void insertEdge(Node *source, Node *destination, double weight) {
         source->adjacencyList.push_back(destination);
+        destination->adjacencyList.push_back(source);
     }
 
     int numNodes; //total number of nodes in the graph
@@ -38,160 +44,278 @@ public:
     // A array of pointers to Node to represent the adjacency list
     Node **head;
 
-    vector<Node*> visited; //(BFS) this vector will store the vertices that we have already visited during
 
-    vector<vector<int>> components; //2 dimensional vector array.
+
+    double weights[MAX_VERTICES][MAX_VERTICES]; //to store all of the weights
 
     // Constructor
-    Graph(vector<Edge> edges, int numEdges, int numNodes)
-    {
+    Graph(vector<Edge> edges, int numEdges, int numNodes) {
         // allocate memory (array of pointers, to our nodes/vertices
-        head = new Node*[numNodes]();
+        head = new Node *[numNodes]();
         this->numNodes = numNodes;
 
         //initialize head pointer for all the vertices (zero index)
-        for(int i=0; i < numNodes; i++)
-        {
+        for (int i = 0; i < numNodes; i++) {
             head[i] = new Node();
-            head[i]->value = i+1;
+            head[i]->vertexId = i + 1;
         }
 
+        //initialize array with all zeros
+        for (int i = 0; i < numNodes; i++) {
+            for (int j = 0; j < numNodes; j++) {
+                weights[i][j] = 0;
+            }
+        }
         //add a directed edge between two vertices
-        for (int i=0; i < numEdges; i++)
-        {   //Give values/edges to the new node
+        for (int i = 0; i < numEdges; i++) {   //Give values/edges to the new node
             int source = edges[i].source;
             int destination = edges[i].destination;
+            double weight = edges[i].weight;
 
-            //so a directed edge goes from source to destination so we are going to plug in those values to the insert function
-            insertEdge(head[source-1], head[destination-1]); //using graph helper function (-1 because zero indexed)
-            //insertEdge(head[destination-1], head[source-1]); //if we wanted to make an undirected graph we would just add this line which adds the opposite direction for each edge
+            weights[source][destination] = weight;
+
+            insertEdge(head[source - 1], head[destination - 1],
+                       weight); //using graph helper function (-1 because zero indexed)
         }
     }
 
-    void transposeGraph(vector<Edge> & edges, int V) //basically the same as the constructor except we are going to insert the opposite direction edges
+    void findMST()
     {
-        // allocate memory (array of pointers, to our nodes/vertices
-        head = new Node*[V]();
-
-        //initialize head pointer for all the vertices (zero index)
-        for(int i=0; i < V; i++)
+        //numNodes++; //to get rid of the zero index
+        //parallel arrays for parent and key
+        int parent[numNodes]; //stores the parent values of the nodes we visted
+        double key[numNodes]; //help us determine which vertex to visit next based on weight edge
+        bool inMST[numNodes];
+        //Initialize arrays
+        for(int i=0; i<numNodes; i++)
         {
-            head[i] = new Node();
-            head[i]->value = i+1;
+            key[i] = INFINITY;
+            inMST[i] = false;
         }
 
-        //add a directed edge between two vertices
-        for (int i=0; i < edges.size(); i++)
-        {   //Give values/edges to the new node
-            int source = edges[i].destination; //storing opposite value
-            int destination = edges[i].source; //storing opposite value
-            //insert edges but their source/dest values are flipped which is how we will get our transposed graph
-            insertEdge(head[source-1], head[destination-1]);
-        }
-    }
+        //starting at first vertex so initialize key and parent
+        key[0] = 0;
+        parent[0] = -12345;
 
-    void DFS(Graph &G, int V, stack<Node*> & finishedVertices)
-    {
-        //stack<Node*> finishedVertices;
-        bool saveOrder = true;
-
-        int time;
-        for (int i = 0; i < V; i++) //initialize vertices to white(undiscovered) and w/ no parent
+        for(int i=0; i<numNodes-1; i++) // Minimum Spanning Tree always has edges = number of Vertices - 1
         {
-            head[i]->color = 0;
-            head[i]->parent = nullptr;
-        }
-        time = 0;
+            int current = selectMinNode(key, inMST); //pick the next "safe" vertex
 
-        for(int i=0; i < V; i++)
-        {
-            if(head[i]->color == 0)
+            inMST[current] = true; //add picked vertex to the list of visited(-1 cuz zero indexed)
+
+            for(int j=0; j<numNodes; j++)
             {
-                DFSVisit(G, head[i], time, finishedVertices, saveOrder);
+                double thisWeight = weights[current][j]; //store in variable so we don't have to write this long shit out
+
+                // check 3 conditions, 1. vertex is not visited 2.edge exists 3. update value if current weight less than key weight
+                bool edgeExists = false;
+                if(thisWeight != 0)
+                {
+                    edgeExists = true;
+                }
+
+                if(!inMST[j] && edgeExists && thisWeight < key[j])
+                {
+                    parent[j] = current;
+                    key[j] = thisWeight;
+                }
             }
         }
 
-        //cout << finishedVertices.size(); shows in order the vertices that the DFS algorithm visited as it ran
-        //printFinishedVerticesList();
+        cout << "A minimum weight spanning tree consists of:" << endl;
+        for(int i=1; i<numNodes; i++)
+        {
+            cout << "Edge:" ;
+            cout << "(" << parent[i]+1 << ", " << i+1 << ") of weight " << weights[i-1][parent[i-1]] << endl;
+        }
+        int sum;
+        for(int i=0; i<numNodes;i++)
+        {
+            sum += key[i];
+        }
+        cout << "Total weight = " << sum-10000;
     }
 
-    void DFSVisit(Graph &G, Node* vertex, int &time, stack<Node*> & finishedVertices, bool addToStack)
+    int selectMinNode(double key[], bool inMST[])
     {
-        if(!addToStack && !inVisited(vertex))
-        {
-            cout << vertex->value << " ";
-        }
+        double min = 1234567;
+        int index = 0;
 
-        time++;
-        vertex->discoverTime = time;
-        vertex->color = 1; // vertex is discovered (grey)
-
-        for(int i=0; i<vertex->adjacencyList.size(); i++)
+        for(int i=0; i < numNodes; i++)
         {
-            Node* neighbor = vertex->adjacencyList[i];
-            if(neighbor->color == 0)
+            if(!inMST[i] && key[i] < min)
             {
-                neighbor->parent = vertex;
-                DFSVisit(G, neighbor, time, finishedVertices, addToStack);
+                min = key[i];
+                index = i;
             }
         }
-        vertex->color = 2; //vertex is finished (black)
-        visited.push_back(vertex);
-        time++;
-        vertex->finishTime = time;
-
-        if(addToStack)
+        if(index > -1)
         {
-            finishedVertices.push(vertex);
+            return index;
         }
+
+        return 0;
     }
 
-    void DFS_SpecifcOrder(Graph &G, int V, stack<Node*> & finishedVertices)
-    {
-        bool saveOrder = false;
+// FAIL 3
+//    void findMST()
+//    {
+//         //numNodes++; //to get rid of the zero index
+//        //parallel arrays for parent and key
+//        int parent[numNodes]; //stores the parent values of the nodes we visted
+//        double key[numNodes]; //help us determine which vertex to visit next based on weight edge
+//        bool inMST[numNodes];
+//        //Initialize arrays
+//        for(int i=0; i<numNodes; i++)
+//        {
+//            key[i] = INFINITY;
+//            inMST[i] = false;
+//        }
+//
+//        //starting at first vertex so initialize key and parent
+//        key[0] = 0;
+//        parent[0] = -12345;
+//
+//        for(int i=0; i<numNodes-1; i++) // Minimum Spanning Tree always has edges = number of Vertices - 1
+//        {
+//            Node* current = selectMinNode(key, inMST); //pick the next "safe" vertex
+//
+//            int currentV = current->vertexId-1;
+//
+//            inMST[current->vertexId-1] = true; //add picked vertex to the list of visited(-1 cuz zero indexed)
+//
+//            for(int j=0; j<numNodes; j++)
+//            {
+//                double thisWeight = weights[current->vertexId-1][j]; //store in variable so we don't have to write this long shit out
+//
+//                // check 3 conditions, 1. vertex is not visited 2.edge exists 3. update value if current weight less than key weight
+//                bool edgeExists = false;
+//                if(thisWeight != 0)
+//                {
+//                    edgeExists = true;
+//                }
+//
+//                if(!inMST[j] && edgeExists && thisWeight < key[j])
+//                {
+//                    parent[j] = current->vertexId-1;
+//                    key[j] = thisWeight;
+//                }
+//            }
+//        }
+//
+//        cout << "A minimum weight spanning tree consists of: \nEdge ";
+//        for(int i=1; i<numNodes; i++)
+//        {
+//            cout << "(" << parent[i] << ", " << i << ") of weight " << weights[i][parent[i]] << endl;
+//        }
+//    }
+//
+//    int selectMinNode(double key[], bool inMST[])
+//    {
+//        double min = 123456;
+//        int index = -1;
+//
+//        for(int i=0; i < numNodes; i++)
+//        {
+//            if(!inMST[i] && key[i] < min)
+//            {
+//                min = key[i];
+//                index = i;
+//            }
+//        }
+//        if(index > -1)
+//        {
+//            return index-1;
+//        }
+//
+//        return 0;
+//    }
 
-        int time;
-        for (int i = 0; i < V; i++) //initialize vertices to white(undiscovered) and w/ no parent
-        {
-            head[i]->color = 0;
-            head[i]->parent = nullptr;
-        }
-        time = 0;
+//FAIL 1
+//    void findMST() {
+//
+//        vector<bool> inMST(numNodes, false); //array that will keep track of nodes in the Minimum Spanning Tree
+//        int parent;
+//
+//        Node *current = head[0];
+//////        visited.clear();
+//////        visited.push_back(current);
+//        vector<int> value(numNodes, INFINITY); // used to store/compare weights
+//
+//        value[0] = 0;
+////        current->parent = -1;
+////        current->key = 0;
+//
+//        for (int i = 0; i < numNodes - 1; i++) //V-1 since MST always has V-1 edges
+//        {
+//            //select adjacent vertex to visit using GREEDY method (get the adjacent node that has the least weight)
+//            //current = selectMinNode(current, inMST);
+//            current = selectMinNode(value, inMST);
+//            inMST[current->vertexId - 1] = true;
+//
+//            for (int j = 0; j < numNodes; j++) {
+//                bool AdjacentCheck = isAdjacent(current, head[j]->vertexId) > -1;
+//
+//                if (!inMST[j] && AdjacentCheck > -1 && current->weights[AdjacentCheck] < value[j]) {
+//                    value[j] = current->weights[AdjacentCheck];
+//                    //head[j]->parent = current->vertexId;
+//                }
+//            }
+//        }
+//
+//        for (int i = 0; i < numNodes; i++) {
+//            cout << head[i]->vertexId << " -> " << head[i]->vertexId << endl;
+//        }
+//    }
+//
+//
+//    Node *selectMinNode(vector<int> &value, vector<bool> &inMST) {
+//        int min = 10000;
+//        int minIndex = -1;
+//        for (int i = 0; i < value.size(); i++) {
+//            if (!inMST[i] && value[i] < min) {
+//                min = value[i];
+//                minIndex = i;
+//            }
+//        }
+//        if (minIndex > -1) {
+//            return head[minIndex];
+//        }
+//        return nullptr;
+//    }
+//
+//    bool isAdjacent(Node *ptr, int potentialNeighbor) {
+//        for (int i = 0; i < ptr->adjacencyList.size(); i++) {
+//            if (ptr->adjacencyList[i]->vertexId - 1 == potentialNeighbor) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
 
-        cout << "G contains following strongly connected components:" << endl;
-        int countComponents = 0;
-        while(!finishedVertices.empty())
-        {
-            int i = finishedVertices.top()->value - 1; //-1 cuz zero indexed
-            if(head[i]->color == 0) //now we are going to run the recursive DFS algorithm
-            {
-                countComponents++;
-                cout << "Component " << countComponents << ": ";
-                DFSVisit(G, head[i], time, finishedVertices, saveOrder);
-                cout << endl;
-            }
-            finishedVertices.pop(); //remove the vertex we just visited from the stack
-        }
 
-    }
 
-    bool inVisited(Node* ptr) //passed in the pointer to a vertex
-    {
-        for(int i=0; i < visited.size(); i++)
-        {
-            if (visited[i]->value == ptr->value) //check if we have visited this vertex before
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+
+//    bool inVisited(Node* ptr) //passed in the pointer to a vertex
+//    {
+//        for(int i=0; i < visited.size(); i++)
+//        {
+//            if (visited[i]->vertexId == ptr->vertexId) //check if we have visited this vertex before
+//            {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
+
+
+
 
     void printNeighborVertices(Node* ptr) // takes pointer to vertex as param and then prints the connected neighbors of that vertex
     {
         for(int i=0; i<ptr->adjacencyList.size(); i++)
         {
-            cout << ptr->adjacencyList[i]->value << " ";
+            cout << ptr->adjacencyList[i]->vertexId << " ";
         }
         cout << endl;
     }
@@ -214,7 +338,7 @@ public:
 
 int main() {
     //Below line is to take input from input.txt instead of having to type each command
-    //freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/inputB.txt", "r", stdin);
+    //freopen("/Users/mustafa/Desktop/SPRING 2022/Algorithms CSCI3412/Programming Assignments/Shami_Prog.Assignment 5/inputC.txt", "r", stdin);
     int numCases;
     cin >> numCases;
     int graphCounter = 1;
@@ -224,19 +348,25 @@ int main() {
         int numVertices;
         cin >> numVertices;
 
+        int numEdges;
+        cin >> numEdges;
+        int countEdge = numEdges-1;
+
         int source, destination;
+        double weight;
         cin >> source;
         cin >> destination;
+        cin >> weight;
         vector<Edge> edges; //vector that will hold Edge objects which we create from user input on the edges that are in the graph
-        while (source != 0 && destination != 0)
+        while (countEdge >= 0)
         {
-            Edge e = {source, destination}; //create edge object
+            Edge e = {source, destination, weight}; //create edge object
             edges.push_back(e); //store edge object
 
-            cin >> source >> destination;
+            cin >> source >> destination >> weight;
+            countEdge--;
         }
 
-        int numEdges = edges.size();
         Graph graph(edges, numEdges, numVertices); //give values to create the graph object
 
         cout << "Graph #" << graphCounter << ":" << endl;
@@ -245,19 +375,7 @@ int main() {
 
         cout << endl;
 
-        // Stack that will hold the order of the finished vertices (in decreasing order of finised times i.e last finished to first finished)
-        stack<Node*> finishedVertices;
-        //RUN DFS on Graph
-        graph.DFS(graph,numVertices, finishedVertices);
-
-        //Transpose the graph
-        Graph transposedG(edges, numEdges, numVertices);//creating a new graph
-        transposedG.transposeGraph(edges, numVertices);//transposing our new graph
-
-        //Run DFS on the graph in the decreasing order we found from DFS on original graph
-        transposedG.DFS_SpecifcOrder(transposedG, numVertices, finishedVertices);
-
-        //transposedG.printAdjListRepresentation(); //test to see if transposed correctly
+        graph.findMST();
 
         cout << endl << endl;
         graphCounter++;
